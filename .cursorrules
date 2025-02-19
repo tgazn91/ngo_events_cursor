@@ -1,0 +1,13 @@
+1. Check for which python
+2. Work in conda environment
+3. If not activated, activate the environment
+4. If environment does not exist, create it
+5. Install packages using conda
+6. If packages are not available in conda, install them using pip
+7. Use SQlite for database
+8. When writing code, always add print statements to track the flow of the application
+9. You will then read the print statements from the terminal and try your best to fix the code
+10. Write in detail about the code in README.md
+11. Before running the code, go through the source code and understand the code
+12. You only need to rectify what is broken and not change what is not broken. Do not touch anything that is not relevant
+13. Help debug by analyzing the logs and application behavior.

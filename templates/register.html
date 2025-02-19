@@ -1,0 +1,129 @@
+{% extends "base.html" %}
+
+{% block title %}Register - NGO Event Management System{% endblock %}
+
+{% block content %}
+<div class="container">
+    <div class="row justify-content-center">
+        <div class="col-lg-6">
+            <div class="card shadow-sm">
+                <div class="card-body p-5">
+                    <h2 class="text-center mb-4">Create Account</h2>
+                    <form method="POST" action="{{ url_for('register') }}">
+                        <div class="mb-3">
+                            <label for="name" class="form-label">Full Name</label>
+                            <div class="input-group">
+                                <span class="input-group-text"><i class="fas fa-user"></i></span>
+                                <input type="text" class="form-control" id="name" name="name" required>
+                            </div>
+                        </div>
+                        <div class="mb-3">
+                            <label for="email" class="form-label">Email Address</label>
+                            <div class="input-group">
+                                <span class="input-group-text"><i class="fas fa-envelope"></i></span>
+                                <input type="email" class="form-control" id="email" name="email" required>
+                            </div>
+                        </div>
+                        <div class="mb-3">
+                            <label for="password" class="form-label">Password</label>
+                            <div class="input-group">
+                                <span class="input-group-text"><i class="fas fa-lock"></i></span>
+                                <input type="password" class="form-control" id="password" name="password" required>
+                            </div>
+                        </div>
+                        <div class="mb-3">
+                            <label for="confirm_password" class="form-label">Confirm Password</label>
+                            <div class="input-group">
+                                <span class="input-group-text"><i class="fas fa-lock"></i></span>
+                                <input type="password" class="form-control" id="confirm_password" name="confirm_password" required>
+                            </div>
+                        </div>
+                        <div class="mb-3">
+                            <label for="role" class="form-label">Role</label>
+                            <select class="form-select" id="role" name="role" required>
+                                <option value="">Select a role</option>
+                                <option value="volunteer">Volunteer</option>
+                                <option value="coordinator">Event Coordinator</option>
+                            </select>
+                        </div>
+                        <div class="mb-3">
+                            <label for="phone" class="form-label">Phone Number (Optional)</label>
+                            <div class="input-group">
+                                <span class="input-group-text"><i class="fas fa-phone"></i></span>
+                                <input type="tel" class="form-control" id="phone" name="phone">
+                            </div>
+                        </div>
+                        <div class="mb-3">
+                            <label for="company" class="form-label">Organization/Company (Optional)</label>
+                            <div class="input-group">
+                                <span class="input-group-text"><i class="fas fa-building"></i></span>
+                                <input type="text" class="form-control" id="company" name="company">
+                            </div>
+                        </div>
+                        <div class="mb-3 form-check">
+                            <input type="checkbox" class="form-check-input" id="terms" name="terms" required>
+                            <label class="form-check-label" for="terms">
+                                I agree to the <a href="#" data-bs-toggle="modal" data-bs-target="#termsModal">Terms and Conditions</a>
+                            </label>
+                        </div>
+                        <div class="d-grid">
+                            <button type="submit" class="btn btn-primary">Create Account</button>
+                        </div>
+                    </form>
+                </div>
+                <div class="card-footer text-center py-3">
+                    <p class="mb-0">Already have an account? <a href="{{ url_for('login') }}">Login here</a></p>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Terms and Conditions Modal -->
+<div class="modal fade" id="termsModal" tabindex="-1">
+    <div class="modal-dialog modal-dialog-scrollable">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Terms and Conditions</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <h6>1. Acceptance of Terms</h6>
+                <p>By accessing and using this NGO Event Management System, you agree to be bound by these terms and conditions.</p>
+                
+                <h6>2. User Responsibilities</h6>
+                <p>Users are responsible for maintaining the confidentiality of their account information and for all activities that occur under their account.</p>
+                
+                <h6>3. Privacy Policy</h6>
+                <p>We respect your privacy and protect your personal information. Please review our Privacy Policy for details on data collection and usage.</p>
+                
+                <h6>4. Code of Conduct</h6>
+                <p>Users must conduct themselves professionally and respectfully when using the system. Any form of harassment or abuse will not be tolerated.</p>
+                
+                <h6>5. Intellectual Property</h6>
+                <p>All content and materials available on this system are protected by applicable copyright and trademark law.</p>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const form = document.querySelector('form');
+    const password = document.getElementById('password');
+    const confirmPassword = document.getElementById('confirm_password');
+
+    form.addEventListener('submit', function(event) {
+        if (password.value !== confirmPassword.value) {
+            event.preventDefault();
+            alert('Passwords do not match!');
+        }
+    });
+});
+</script>
+{% endblock %} 

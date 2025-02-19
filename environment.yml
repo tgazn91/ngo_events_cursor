@@ -1,0 +1,13 @@
+name: ngo_events
+channels:
+  - conda-forge
+  - defaults
+dependencies:
+  - python=3.12
+  - flask
+  - flask-sqlalchemy
+  - flask-login
+  - werkzeug
+  - pip
+  - pip:
+    - python-dotenv

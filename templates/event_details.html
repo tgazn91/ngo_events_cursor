@@ -1,0 +1,479 @@
+{% extends "base.html" %}
+
+{% block title %}{{ event.title }} - NGO Event Management System{% endblock %}
+
+{% block content %}
+<div class="page-breadcrumb bg-light py-2 mb-4">
+    <div class="container">
+        <nav aria-label="breadcrumb">
+            <ol class="breadcrumb mb-0">
+                <li class="breadcrumb-item"><a href="{{ url_for('index') }}">Home</a></li>
+                <li class="breadcrumb-item"><a href="{{ url_for('dashboard') }}">Dashboard</a></li>
+                <li class="breadcrumb-item active">{{ event.title }}</li>
+            </ol>
+        </nav>
+    </div>
+</div>
+
+<div class="container">
+    {% if not event %}
+        <div class="alert alert-danger" role="alert">
+            Event not found. Please check the URL or return to the <a href="{{ url_for('index') }}">home page</a>.
+        </div>
+    {% else %}
+        <div class="card shadow-sm">
+            <div class="card-body">
+                <!-- Event Header Section -->
+                <div class="d-flex justify-content-between align-items-center mb-4">
+                    <div>
+                        <h1 class="display-5 mb-0">{{ event.title }}</h1>
+                        <p class="text-muted mt-2 mb-0">Organized by {{ event.organizer.name }}</p>
+                    </div>
+                    {% if current_user.role == 'admin' or (current_user.role == 'coordinator' and event.organizer_id == current_user.id) %}
+                    <button class="btn btn-outline-danger" onclick="return deleteEvent(this, {{ event.id }})">
+                        <i class="fas fa-trash me-2"></i>Delete Event
+                    </button>
+                    {% endif %}
+                </div>
+
+                <!-- Event Details Grid -->
+                <div class="row">
+                    <!-- Left Column: Details and Description -->
+                    <div class="col-lg-8">
+                        <div class="card bg-light border-0 mb-4">
+                            <div class="card-body">
+                                <h5 class="card-subtitle mb-3">
+                                    <i class="fas fa-info-circle me-2"></i>Event Details
+                                </h5>
+                                <div class="row g-4">
+                                    <div class="col-sm-6">
+                                        <div class="detail-item">
+                                            <i class="fas fa-calendar-alt text-primary me-2"></i>
+                                            <span>{{ event.date.strftime('%B %d, %Y') }}</span>
+                                        </div>
+                                        <div class="detail-item mt-3">
+                                            <i class="fas fa-clock text-primary me-2"></i>
+                                            <span>{{ event.date.strftime('%I:%M %p') }}</span>
+                                        </div>
+                                    </div>
+                                    <div class="col-sm-6">
+                                        <div class="detail-item">
+                                            <i class="fas fa-map-marker-alt text-primary me-2"></i>
+                                            <span>{{ event.location }}</span>
+                                        </div>
+                                        <div class="detail-item mt-3">
+                                            <i class="fas fa-users text-primary me-2"></i>
+                                            <span>Capacity: <span id="regCount-{{ event.id }}">{{ event.registrations|length }}/{{ event.capacity }}</span></span>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="card border-0">
+                            <div class="card-body">
+                                <h5 class="card-subtitle mb-3">About This Event</h5>
+                                <p class="card-text lead">{{ event.description }}</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Right Column: Registration Card -->
+                    <div class="col-lg-4">
+                        <div class="card shadow-sm mb-4 position-sticky" style="top: 1rem;">
+                            <div class="card-body">
+                                <h5 class="card-title mb-3">Registration Status</h5>
+                                <div class="d-flex justify-content-between align-items-center mb-3">
+                                    <span class="badge bg-{{ 'success' if event.registrations|length < event.capacity else 'danger' }} p-2">
+                                        <i class="fas fa-{{ 'check-circle' if event.registrations|length < event.capacity else 'times-circle' }} me-1"></i>
+                                        {{ 'Open for Registration' if event.registrations|length < event.capacity else 'Registration Closed' }}
+                                    </span>
+                                    <span class="badge bg-info p-2">
+                                        <i class="fas fa-users me-1"></i>
+                                        {{ event.registrations|length }}/{{ event.capacity }}
+                                    </span>
+                                </div>
+
+                                {% if is_registered %}
+                                    <button class="btn btn-success w-100" disabled>
+                                        <i class="fas fa-check me-2"></i>You're Registered
+                                    </button>
+                                {% else %}
+                                    {% if event.registrations|length < event.capacity %}
+                                        <button id="regBtn-{{ event.id }}" class="btn btn-primary btn-lg w-100" onclick="registerForEvent({{ event.id }}, this)">
+                                            <i class="fas fa-ticket-alt me-2"></i>Register Now
+                                        </button>
+                                    {% else %}
+                                        <div class="alert alert-danger mb-0">
+                                            <i class="fas fa-exclamation-circle me-2"></i>
+                                            Event is fully booked
+                                        </div>
+                                    {% endif %}
+                                {% endif %}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="row mt-4">
+                    {% if event.eposter %}
+                    <div class="col-md-6">
+                        <div class="card shadow-sm">
+                            <div class="card-body">
+                                <h5 class="card-title mb-3">
+                                    <i class="fas fa-image me-2"></i>Event Poster
+                                </h5>
+                                <img src="{{ url_for('static', filename=event.eposter) }}" 
+                                     class="img-fluid rounded" 
+                                     alt="Event Poster for {{ event.title }}"
+                                     style="max-height: 500px; width: auto; display: block; margin: 0 auto;">
+                            </div>
+                        </div>
+                    </div>
+                    {% endif %}
+                    <div class="col-md{% if not event.eposter %}-12{% else %}-6{% endif %}">
+                        <!-- Admin Controls Section -->
+                        {% if current_user.role == 'admin' or (current_user.role == 'coordinator' and event.organizer_id == current_user.id) %}
+                        <div class="mt-5">
+                            <h3 class="h4 mb-4">Admin Controls</h3>
+                            <div class="card shadow-sm">
+                                <div class="card-body">
+                                    <button class="btn btn-warning btn-sm me-2" onclick="toggleEditForm()">
+                                        <i class="fas fa-edit me-2"></i>Edit Event
+                                    </button>
+                                    <button class="btn btn-danger btn-sm" onclick="deleteEvent(this, {{ event.id }})">
+                                        <i class="fas fa-trash me-2"></i>Delete Event
+                                    </button>
+
+                                    <!-- Edit Form (Initially Hidden) -->
+                                    <form id="editEventForm" class="mt-4 d-none" enctype="multipart/form-data">
+                                        <div class="mb-3">
+                                            <label for="title" class="form-label">Title</label>
+                                            <input type="text" class="form-control" id="title" name="title" value="{{ event.title }}" required>
+                                        </div>
+                                        
+                                        <div class="mb-3">
+                                            <label for="description" class="form-label">Description</label>
+                                            <textarea class="form-control" id="description" name="description" rows="3" required>{{ event.description }}</textarea>
+                                        </div>
+                                        
+                                        <div class="row">
+                                            <div class="col-md-6 mb-3">
+                                                <label for="event_type" class="form-label">Event Type</label>
+                                                <select class="form-select" id="event_type" name="event_type" required>
+                                                    <option value="conference" {% if event.event_type == 'conference' %}selected{% endif %}>Conference</option>
+                                                    <option value="seminar" {% if event.event_type == 'seminar' %}selected{% endif %}>Seminar</option>
+                                                    <option value="workshop" {% if event.event_type == 'workshop' %}selected{% endif %}>Workshop</option>
+                                                    <option value="fundraiser" {% if event.event_type == 'fundraiser' %}selected{% endif %}>Fundraiser</option>
+                                                    <option value="volunteer_drive" {% if event.event_type == 'volunteer_drive' %}selected{% endif %}>Volunteer Drive</option>
+                                                    <option value="sports_event" {% if event.event_type == 'sports_event' %}selected{% endif %}>Sports Event</option>
+                                                </select>
+                                            </div>
+                                            
+                                            <div class="col-md-6 mb-3">
+                                                <label for="date" class="form-label">Date and Time</label>
+                                                <input type="datetime-local" class="form-control" id="date" name="date" value="{{ event.date.strftime('%Y-%m-%dT%H:%M') }}" required>
+                                            </div>
+                                        </div>
+                                        
+                                        <div class="mb-3">
+                                            <label for="location" class="form-label">Location</label>
+                                            <input type="text" class="form-control" id="location" name="location" value="{{ event.location }}" required>
+                                        </div>
+                                        
+                                        <div class="mb-3">
+                                            <label for="capacity" class="form-label">Capacity</label>
+                                            <input type="number" class="form-control" id="capacity" name="capacity" value="{{ event.capacity }}" min="1" required>
+                                        </div>
+                                        
+                                        <div class="mb-3">
+                                            <label for="eposter" class="form-label">Update Event Poster</label>
+                                            <input type="file" class="form-control" id="eposter" name="eposter" accept="image/*">
+                                            <div class="form-text">Leave empty to keep the current poster</div>
+                                        </div>
+                                        
+                                        <div class="d-flex justify-content-end gap-2">
+                                            <button type="button" class="btn btn-secondary" onclick="toggleEditForm()">Cancel</button>
+                                            <button type="submit" class="btn btn-primary">
+                                                <span class="spinner-border spinner-border-sm me-2 d-none"></span>
+                                                Save Changes
+                                            </button>
+                                        </div>
+                                    </form>
+                                </div>
+                            </div>
+                        </div>
+                        {% endif %}
+                        <!-- Admin Controls Section -->
+                        {% if current_user.role == 'admin' or (current_user.role == 'coordinator' and event.organizer_id == current_user.id) %}
+                        <div class="mt-5">
+                            <h3 class="h4 mb-4">Admin Controls</h3>
+                            <div class="card shadow-sm">
+                                <div class="card-body">
+                                    <div class="d-flex justify-content-between align-items-center mb-3">
+                                        <h5 class="card-title mb-0">Registered Participants</h5>
+                                        <button class="btn btn-outline-primary" onclick="return exportRegistrations()">
+                                            <i class="fas fa-download me-2"></i>Export List
+                                        </button>
+                                    </div>
+                                    <div class="table-responsive">
+                                        <table class="table table-hover">
+                                            <thead class="table-light">
+                                                <tr>
+                                                    <th>Name</th>
+                                                    <th>Email</th>
+                                                    <th>Registration Date</th>
+                                                    <th>Status</th>
+                                                    <th>Actions</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody id="registrationsList">
+                                                {% for registration in event.registrations %}
+                                                <tr>
+                                                    <td>{{ registration.user.name }}</td>
+                                                    <td>{{ registration.user.email }}</td>
+                                                    <td>{{ registration.registration_date.strftime('%Y-%m-%d %H:%M') }}</td>
+                                                    <td>
+                                                        <span class="badge bg-{{ 'success' if registration.status == 'approved' else 'warning' }}">
+                                                            {{ registration.status }}
+                                                        </span>
+                                                    </td>
+                                                    <td>
+                                                        <div class="btn-group btn-group-sm">
+                                                            {% if registration.status != 'approved' %}
+                                                            <button class="btn btn-success" onclick="return updateRegistrationStatus(this, {{ registration.id }}, 'approved')">
+                                                                <i class="fas fa-check"></i>
+                                                            </button>
+                                                            {% endif %}
+                                                            <button class="btn btn-danger" onclick="return updateRegistrationStatus(this, {{ registration.id }}, 'deleted')">
+                                                                <i class="fas fa-trash"></i>
+                                                            </button>
+                                                        </div>
+                                                    </td>
+                                                </tr>
+                                                {% endfor %}
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        {% endif %}
+
+                        <!-- Comments Section -->
+                        <div class="mt-5">
+                            <h3 class="h4 mb-4">Comments</h3>
+                            <div class="card shadow-sm mb-3">
+                                <div class="card-body">
+                                    <form action="{{ url_for('add_comment', event_id=event.id) }}" method="POST">
+                                        <div class="mb-3">
+                                            <textarea class="form-control" name="comment" rows="3" 
+                                                      placeholder="Share your thoughts about this event..." required></textarea>
+                                        </div>
+                                        <button type="submit" class="btn btn-primary">
+                                            <i class="fas fa-paper-plane me-2"></i>Post Comment
+                                        </button>
+                                    </form>
+                                </div>
+                            </div>
+
+                            <div class="comments-list">
+                                {% for comment in event.comments|sort(attribute='created_at', reverse=True) %}
+                                <div class="card shadow-sm mb-3">
+                                    <div class="card-body">
+                                        <div class="d-flex justify-content-between align-items-center mb-2">
+                                            <div>
+                                                <h6 class="mb-0">{{ comment.user.name }}</h6>
+                                                <small class="text-muted">{{ comment.created_at.strftime('%b %d, %Y %I:%M %p') }}</small>
+                                            </div>
+                                            {% if current_user.id == comment.user_id or current_user.role in ['admin', 'coordinator'] %}
+                                            <form action="{{ url_for('delete_comment', comment_id=comment.id) }}" method="POST" class="d-inline">
+                                                <button type="submit" class="btn btn-sm btn-link text-danger" 
+                                                        onclick="return confirm('Are you sure you want to delete this comment?')">
+                                                    <i class="fas fa-times"></i>
+                                                </button>
+                                            </form>
+                                            {% endif %}
+                                        </div>
+                                        <p class="mb-0">{{ comment.comment }}</p>
+                                    </div>
+                                </div>
+                                {% else %}
+                                <div class="alert alert-info">
+                                    <i class="fas fa-comments me-2"></i>No comments yet. Be the first to comment!
+                                </div>
+                                {% endfor %}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    {% endif %}
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+async function apiRequest(url, options = {}) {
+    try {
+        const response = await fetch(url, {
+            ...options,
+            headers: {
+                'Content-Type': 'application/json',
+                ...options.headers
+            }
+        });
+        
+        if (response.status === 405) {
+            console.error('Method not allowed. Please check the API endpoint and method.');
+            throw new Error('Invalid API method');
+        }
+        
+        const data = await response.json();
+        
+        if (!response.ok) {
+            throw new Error(data.error || 'An error occurred');
+        }
+        
+        return data;
+    } catch (error) {
+        console.error('API Error:', error);
+        showMessage(error.message, 'danger');
+        throw error;
+    }
+}
+
+function showMessage(message, type) {
+    // Use the global showAlert function instead of creating new alerts
+    showAlert(message, type);
+}
+
+// Event handlers with improved error handling
+function deleteEvent(button, eventId) {
+    if (!confirm('Are you sure you want to delete this event?')) return;
+    
+    button.disabled = true;
+    button.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Deleting...';
+    
+    apiRequest(`/api/events/${eventId}`, { method: 'DELETE' })
+        .then(data => {
+            if (data.success) {
+                window.location.href = '/dashboard';
+            } else {
+                throw new Error('Failed to delete event');
+            }
+        })
+        .catch(error => {
+            console.error('Error deleting event:', error);
+            button.disabled = false;
+            button.innerHTML = '<i class="fas fa-trash me-2"></i>Delete Event';
+            showMessage('Failed to delete event. Please try again.', 'error');
+        });
+}
+
+function updateRegistrationStatus(button, registrationId, status) {
+    button.disabled = true;
+    const originalContent = button.innerHTML;
+    button.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Updating...';
+
+    apiRequest(`/api/registrations/${registrationId}/status`, {
+        method: 'PUT',
+        body: JSON.stringify({ status })
+    })
+    .then(data => {
+        if (data.success) {
+            showMessage(`Registration ${status} successfully`, 'success');
+            setTimeout(() => window.location.reload(), 1500);
+        } else {
+            throw new Error('Failed to update registration');
+        }
+    })
+    .catch(error => {
+        console.error('Error updating registration:', error);
+        button.disabled = false;
+        button.innerHTML = originalContent;
+        showMessage('Failed to update registration. Please try again.', 'error');
+    });
+}
+
+function exportRegistrations() {
+    const eventId = new URL(window.location.href).pathname.split('/').pop();
+    window.location.href = `/api/events/${eventId}/registrations/export`;
+}
+
+async function registerForEvent(eventId, button) {
+    button.disabled = true;
+    button.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span>Registering...';
+    
+    try {
+        const data = await apiRequest(`/api/events/${eventId}/register`, { method: 'POST' });
+        if (data.success) {
+            showMessage('Successfully registered for the event!', 'success');
+            setTimeout(() => window.location.reload(), 1500);
+        } else {
+            throw new Error(data.error || 'Failed to register for event');
+        }
+    } catch (error) {
+        console.error('Error registering for event:', error);
+        button.disabled = false;
+        button.innerHTML = '<i class="fas fa-ticket-alt me-1"></i>Register';
+        showMessage(error.message || 'Failed to register for event. Please try again.', 'danger');
+    }
+}
+
+function toggleEditForm() {
+    const form = document.getElementById('editEventForm');
+    form.classList.toggle('d-none');
+}
+
+document.getElementById('editEventForm')?.addEventListener('submit', async function(e) {
+    e.preventDefault();
+    
+    const form = e.target;
+    const submitBtn = form.querySelector('button[type="submit"]');
+    const spinner = submitBtn.querySelector('.spinner-border');
+    
+    try {
+        submitBtn.disabled = true;
+        spinner.classList.remove('d-none');
+        
+        const formData = new FormData(form);
+        const response = await fetch(`/api/events/{{ event.id }}`, {
+            method: 'PUT',
+            body: formData
+        });
+        
+        const data = await response.json();
+        
+        if (!response.ok) {
+            throw new Error(data.error || 'Failed to update event');
+        }
+        
+        showMessage('Event updated successfully!', 'success');
+        setTimeout(() => window.location.reload(), 1500);
+    } catch (error) {
+        console.error('Error updating event:', error);
+        showMessage(error.message, 'danger');
+    } finally {
+        submitBtn.disabled = false;
+        spinner.classList.add('d-none');
+    }
+});
+
+// Add file validation for eposter
+document.getElementById('eposter')?.addEventListener('change', function() {
+    const file = this.files[0];
+    if (file) {
+        if (file.size > 5 * 1024 * 1024) { // 5MB limit
+            this.value = '';
+            showMessage('File size should not exceed 5MB', 'danger');
+        }
+        if (!file.type.startsWith('image/')) {
+            this.value = '';
+            showMessage('Please select an image file', 'danger');
+        }
+    }
+});
+</script>
+{% endblock %}
